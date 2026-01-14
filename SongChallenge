@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SONG CHALLENGES: The Song Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Righteous&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .title-font {
+            font-family: 'Righteous', cursive;
+        }
+
+        .category-card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            transition: transform 0.2s ease;
+            transform-style: preserve-3d;
+            height: 140px;
+        }
+
+        .category-card:hover .card-inner {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(45deg, #f472b6, #a855f7, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .completed {
+            opacity: 0.3;
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        .score-pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+            position: relative;
+        }
+
+        .extra-mark-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #4ade80;
+            color: #0f172a;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+            z-index: 30;
+        }
+
+        .extra-mark-btn:active { transform: scale(0.9); }
+
+        .ranking-item {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+        }
+
+        @media (max-width: 768px) {
+            .card-inner { height: 100px; }
+            .grid-cols-5 { grid-template-columns: repeat(2, 1fr); }
+            .scoreboard { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-white">
+
+    <div id="app" class="max-w-6xl mx-auto">
+        
+        <header id="app-header" class="text-center mb-8">
+            <h1 id="main-title" class="text-5xl md:text-7xl title-font mb-4 gradient-text uppercase tracking-widest text-white">Song Challenges</h1>
+        </header>
+
+        <!-- Rules View -->
+        <div id="rules-view" class="flex items-center justify-center py-4">
+            <div class="glass max-w-3xl w-full p-8 md:p-12 rounded-3xl shadow-2xl border-white/20 text-center">
+                <h2 class="text-3xl md:text-4xl title-font mb-8 text-pink-400 uppercase tracking-tighter">How To Play</h2>
+                <div class="space-y-6 text-left text-lg text-slate-300 mb-10">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-pink-600 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-white shadow-lg text-sm">1</div>
+                        <p><span class="text-white font-bold">ONE </span> group chooses from the categories on the board.</p>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="bg-pink-600 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-white shadow-lg text-sm">2</div>
+                        <p><span class="text-white font-bold">ALL</span> groups can answer but shout out your <span class="text-white font-bold">GROUP NAME</span> first.</p>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="bg-pink-600 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-white shadow-lg text-sm">3</div>
+                        <p>Each group has exactly <span class="text-white font-bold">ONE </span> attempt to guess the correct song.</p>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="bg-pink-600 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-white shadow-lg text-sm">4</div>
+                        <p>After <span class="text-white font-bold">THREE </span>rounds, if no one gets it correct, 0 points are awarded.</p>
+                    </div>
+                    <div class="flex items-start gap-4 border-t border-white/10 pt-5">
+                        <div class="bg-pink-600 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-white shadow-lg text-sm">5</div>
+                        <p>Correctly answer the question to <span class="text-green-400 font-bold uppercase tracking-normal">get the mark!</span></p>
+                    </div>
+                </div>
+                <button onclick="startGame()" class="px-12 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-full font-bold text-xl shadow-xl shadow-indigo-500/40 uppercase text-white transition-transform active:scale-95">
+                    Listen and Guess
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start mb-10 px-4 gap-6">
+                <div class="flex flex-col gap-2">
+                    <button onclick="showRules()" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 border border-white/10">
+                        📖 View Rules
+                    </button>
+                    <button onclick="toggleRenameMode()" class="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 rounded-xl text-xs font-bold uppercase tracking-widest text-indigo-300 border border-indigo-500/20">
+                        ✏️ Rename Groups
+                    </button>
+                </div>
+                
+                <div id="scoreboard" class="flex flex-row flex-wrap justify-center gap-6 scoreboard"></div>
+                
+                <div class="hidden md:block w-32"></div> 
+            </div>
+
+            <!-- Group Rename Panel -->
+            <div id="rename-panel" class="hidden mb-10 glass p-6 rounded-3xl border-indigo-500/30 max-w-2xl mx-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-indigo-400 font-bold uppercase text-sm tracking-widest">Group Names Setup</h3>
+                    <button onclick="toggleRenameMode()" class="text-slate-500 hover:text-white">✕</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-white">
+                    <input type="text" onchange="updateGroupName(0, this.value)" id="name-0" class="bg-slate-800 border border-white/10 rounded-lg p-2 text-sm text-center outline-none focus:border-indigo-500" placeholder="Group 1">
+                    <input type="text" onchange="updateGroupName(1, this.value)" id="name-1" class="bg-slate-800 border border-white/10 rounded-lg p-2 text-sm text-center outline-none focus:border-indigo-500" placeholder="Group 2">
+                    <input type="text" onchange="updateGroupName(2, this.value)" id="name-2" class="bg-slate-800 border border-white/10 rounded-lg p-2 text-sm text-center outline-none focus:border-indigo-500" placeholder="Group 3">
+                    <input type="text" onchange="updateGroupName(3, this.value)" id="name-3" class="bg-slate-800 border border-white/10 rounded-lg p-2 text-sm text-center outline-none focus:border-indigo-500" placeholder="Group 4">
+                    <input type="text" onchange="updateGroupName(4, this.value)" id="name-4" class="bg-slate-800 border border-white/10 rounded-lg p-2 text-sm text-center outline-none focus:border-indigo-500" placeholder="Group 5">
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-8 px-4">
+                <p class="text-slate-400 text-lg font-bold italic">Select a Challenge Category:</p>
+                <div class="flex gap-4">
+                    <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold border border-green-500/30">Row 1: 2pts</span>
+                    <span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-bold border border-purple-500/30">Row 2: 5pts</span>
+                </div>
+            </div>
+
+            <div id="category-grid" class="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-12"></div>
+
+            <div class="text-center py-8 border-t border-white/5">
+                <button onclick="showFinalRanking()" class="px-10 py-4 bg-slate-800 hover:bg-red-600 rounded-full font-bold text-lg border border-white/10 shadow-lg uppercase text-white">
+                    🏁 Finish the Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Final Ranking View -->
+        <div id="ranking-view" class="hidden py-10">
+            <div class="glass max-w-2xl mx-auto p-10 rounded-[3rem] shadow-2xl border-white/10 text-center">
+                <h2 class="text-4xl md:text-6xl title-font mb-12 gradient-text">Final Standings</h2>
+                <div id="ranking-list" class="space-y-4 mb-12 text-left"></div>
+                <button onclick="location.reload()" class="mt-10 text-slate-500 hover:text-white transition-colors text-sm underline">Reset Board</button>
+            </div>
+        </div>
+
+        <!-- Question View -->
+        <div id="question-view" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/98 backdrop-blur-xl">
+            <div class="glass max-w-4xl w-full p-8 rounded-3xl text-center shadow-2xl border-white/10 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+                <div id="q-category-tag" class="text-xs uppercase tracking-[0.3em] font-bold mb-4 py-1 px-4 inline-block rounded-full"></div>
+                
+                <h2 id="q-title" class="text-3xl md:text-4xl title-font mb-6 text-white uppercase tracking-tight">Listen and Guess</h2>
+                
+                <!-- Audio Logic Container -->
+                <div id="audio-container" class="bg-slate-800/50 rounded-2xl p-6 border border-white/5 mb-8 transition-all">
+                    <div id="audio-error" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 text-sm">⚠️ Audio failed to load.</div>
+                    <p id="listen-counter" class="text-sm text-slate-400 mb-4 uppercase font-bold tracking-widest">Listens used: 0 / 3</p>
+                    
+                    <div class="flex flex-col gap-4">
+                        <button id="play-challenge-btn" onclick="playAudioSnippet()" class="w-full py-5 bg-white text-slate-900 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-200 transition-all text-xl shadow-lg">
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            <span id="play-btn-text">Start Challenge Audio</span>
+                        </button>
+                        
+                        <div id="challenge-actions" class="flex justify-center items-center gap-4 py-2">
+                            <button id="reveal-btn-small" onclick="showAnswerAndPlay()" class="w-28 py-2 px-2 bg-green-600/30 hover:bg-green-600/50 text-green-400 rounded-lg text-[11px] font-bold uppercase tracking-widest border border-green-600/20 transition-all flex items-center justify-center gap-2">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                Correct
+                            </button>
+
+                            <button onclick="playWrongSound()" class="w-28 py-2 px-2 bg-red-600/30 hover:bg-red-600/50 text-red-400 rounded-lg text-[11px] font-bold uppercase tracking-widest border border-red-600/20 transition-all flex items-center justify-center gap-2">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>
+                                Wrong
+                            </button>
+                        </div>
+
+                        <button id="stop-question-btn" onclick="stopMusicManually()" class="w-full py-3 bg-red-600/20 text-red-400 border border-red-600/30 rounded-xl font-bold transition-all hidden text-white">Stop Audio Early</button>
+                    </div>
+                    <div id="audio-progress" class="w-full bg-slate-700 h-1 mt-6 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="bg-indigo-500 h-full w-0 transition-all duration-100"></div>
+                    </div>
+                </div>
+
+                <div id="answer-box" class="hidden mt-8 pt-8 border-t border-white/10 text-left">
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <!-- VERTICAL SCORING LEFT -->
+                        <div class="w-full md:w-1/3">
+                            <p class="text-slate-500 text-[10px] uppercase mb-4 font-bold tracking-widest">Award Points To:</p>
+                            <div id="award-buttons-container" class="flex flex-col gap-3"></div>
+                        </div>
+
+                        <!-- SONG INFO RIGHT -->
+                        <div class="w-full md:w-2/3 text-center md:text-left flex flex-col justify-center">
+                            <p class="text-slate-400 mb-2 text-xs uppercase tracking-[0.3em]">The Correct Song Is:</p>
+                            <p id="q-answer" class="text-3xl md:text-5xl font-bold text-green-400 mb-8 leading-tight"></p>
+                            
+                            <div class="flex flex-col gap-3">
+                                <button id="final-sing-btn" onclick="playSingAlong()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-3 transition-all shadow-xl">
+                                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                                    <span>PLAY SING ALONG</span>
+                                </button>
+                                <button id="stop-sing-btn" onclick="stopMusicManually()" class="w-full py-2 bg-red-600/20 text-red-400 border border-red-600/30 rounded-xl font-bold transition-all hidden text-sm text-white">Stop Music</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-12 pt-6 border-t border-white/5 flex justify-center">
+                    <button onclick="backToDashboard()" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition text-[10px] text-slate-500 border border-white/5 uppercase tracking-[0.3em] text-white">Back to board</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <audio id="main-audio"></audio>
+    <audio id="sfx-audio"></audio>
+
+    <script>
+        let scores = [0, 0, 0, 0, 0];
+        let groupNames = ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5"];
+        
+        const rewardCeremonyMusic = "https://files.catbox.moe/r2ln7r.mp3"; 
+        const wrongAnswerSound = "https://www.myinstants.com/media/sounds/wrong-answer-sound-effect.mp3"; 
+
+        const categories = [
+            { id: 1, type: '3sec', name: "00s Dancing Hits", audio: "https://github.com/edricenglishlearning/audio/blob/2d6de05d9ee26a55596011be1b3d290590df8877/Lady%20Gaga%20-%20Just%20Dance%20(Official%20Music%20Video)%20ft.%20Colby%20O%20Donis.mp3", answer: "Just Dance - Lady Gaga", points: 2, startTime: 51 },
+            { id: 2, type: '3sec', name: "Disney", audio: "https://github.com/edricenglishlearning/audio/blob/2d6de05d9ee26a55596011be1b3d290590df8877/Do%20You%20Want%20to%20Build%20a%20Snowman%20%20(From%20%20Frozen%20_Sing-Along).mp3", answer: "Do you want to Build a Snowman - Frozen", points: 2, startTime: 6 },
+            { id: 3, type: '3sec', name: "00s Love", audio: "https://files.catbox.moe/8eo2x9.mp3", answer: "I'm Yours - Jason Mraz", points: 2, startTime: 36 },
+            { id: 4, type: '3sec', name: "Mandopop", audio: "https://files.catbox.moe/555yqz.mp3", answer: "失戀無罪 - Alin", points: 2, startTime: 60 },
+            { id: 5, type: '3sec', name: "K-Pop", audio: "https://files.catbox.moe/vfzh90.mp3", answer: "Super Shy - New Jeans", points: 2, startTime: 9 },
+            
+            { id: 6, type: 'reverse', name: "Dancing Queen", questionAudio: "https://files.catbox.moe/j1edrc.mp3", answerAudio: "https://files.catbox.moe/kqiry8.mp3", answer: "Crazy in Love - Beyoncé", points: 5, startTime: 45 },
+            { id: 7, type: 'reverse', name: "Disney Magic", questionAudio: "https://files.catbox.moe/v61085.mp3", answerAudio: "https://files.catbox.moe/5mobxc.mp3", answer: "A Whole New World - Aladdin", points: 5, startTime: 30 },
+            { id: 8, type: 'reverse', name: "K-Pop Legend", questionAudio: "https://files.catbox.moe/tma0jq.mp3", answerAudio: "https://files.catbox.moe/vwzzq3.mp3", answer: "Bang Bang Bang - BigBang", points: 5, startTime: 4 },
+            { id: 9, type: 'reverse', name: "Taiwanese Pop", questionAudio: "https://files.catbox.moe/6pk84m.mp3", answerAudio: "https://files.catbox.moe/55mkh4.mp3", answer: "浪子回頭 - 茄子蛋", points: 5, startTime: 63 },
+            { id: 10, type: 'reverse', name: "Taiwanese Rapper", questionAudio: "https://files.catbox.moe/1pqyi1.mp3", answerAudio: "https://files.catbox.moe/la0a2t.mp3", answer: "生煎包 - MJ116", points: 5, startTime: 61 }
+        ];
+
+        let currentCategory = null;
+        let completedIds = new Set();
+        let listensUsed = 0;
+        let isPlaying = false;
+        let isSingingAlong = false; 
+        let currentTimer = null;
+        const audioEl = document.getElementById('main-audio');
+        const sfxEl = document.getElementById('sfx-audio');
+        const errorEl = document.getElementById('audio-error');
+
+        audioEl.onended = () => { stopMusicManually(); };
+        audioEl.onerror = () => { if (audioEl.src && audioEl.src !== window.location.href) errorEl.classList.remove('hidden'); };
+
+        function startGame() {
+            document.getElementById('rules-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.remove('hidden');
+            document.getElementById('main-title').classList.remove('hidden');
+            updateScoreboard();
+            initGrid();
+        }
+
+        function showRules() {
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('rules-view').classList.remove('hidden');
+        }
+
+        function toggleRenameMode() {
+            const panel = document.getElementById('rename-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                groupNames.forEach((name, i) => {
+                    const input = document.getElementById(`name-${i}`);
+                    if (input) input.value = name;
+                });
+            }
+        }
+
+        function updateGroupName(index, newName) {
+            groupNames[index] = newName || `Group ${index + 1}`;
+            updateScoreboard();
+        }
+
+        function addManualMark(index) {
+            scores[index] += 1;
+            updateScoreboard();
+        }
+
+        function updateScoreboard() {
+            const scoreboard = document.getElementById('scoreboard');
+            if (!scoreboard) return;
+            scoreboard.innerHTML = scores.map((s, i) => `
+                <div class="score-pill shadow-lg">
+                    <div class="extra-mark-btn" onclick="addManualMark(${i})">+</div>
+                    <span class="text-[9px] md:text-[10px] uppercase font-bold text-indigo-400/60 mb-1 truncate max-w-[80px]">${groupNames[i]}</span>
+                    <span class="text-xl md:text-2xl font-bold text-white">${s}</span>
+                </div>
+            `).join('');
+        }
+
+        function playWrongSound() {
+            sfxEl.src = wrongAnswerSound;
+            sfxEl.volume = 1;
+            sfxEl.play().catch(e => console.log("SFX play blocked"));
+        }
+
+        function awardPoints(index, element) {
+            if (!currentCategory) return;
+            scores[index] += currentCategory.points;
+            updateScoreboard();
+            const original = element.innerHTML;
+            element.innerHTML = `✅ Added!`;
+            element.classList.add('bg-indigo-600');
+            setTimeout(() => { 
+                element.innerHTML = original;
+                element.classList.remove('bg-indigo-600'); 
+            }, 1000);
+        }
+
+        function initGrid() {
+            const grid = document.getElementById('category-grid');
+            if (!grid) return;
+            grid.innerHTML = categories.map(cat => {
+                let badgeClass = cat.type === '3sec' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400';
+                return `
+                <div class="category-card ${completedIds.has(cat.id) ? 'completed' : ''}" onclick="openQuestion(${cat.id})">
+                    <div class="card-inner glass rounded-2xl flex flex-col items-center justify-center p-4 text-center border border-white/5">
+                        <span class="text-xs uppercase tracking-[0.2em] font-bold ${badgeClass} px-3 py-1 rounded-full mb-3">${cat.points} Marks</span>
+                        <span class="text-lg md:text-xl font-bold text-white line-clamp-1">${cat.name}</span>
+                    </div>
+                </div>`
+            }).join('');
+        }
+
+        function openQuestion(id) {
+            currentCategory = categories.find(c => c.id === id);
+            if (!currentCategory) return;
+            
+            listensUsed = 0; isPlaying = false; isSingingAlong = false;
+            if (currentTimer) clearInterval(currentTimer);
+            errorEl.classList.add('hidden');
+            
+            const tag = document.getElementById('q-category-tag');
+            tag.innerText = `${currentCategory.name} • ${currentCategory.points} Marks`;
+            let tagColor = currentCategory.type === '3sec' ? 'bg-green-500 text-slate-900' : 'bg-purple-500 text-white';
+            tag.className = `text-xs uppercase tracking-[0.3em] font-bold mb-4 py-1 px-4 inline-block rounded-full ${tagColor}`;
+            
+            document.getElementById('answer-box').classList.add('hidden');
+            document.getElementById('stop-sing-btn').classList.add('hidden');
+            document.getElementById('stop-question-btn').classList.add('hidden');
+            document.getElementById('challenge-actions').classList.remove('hidden');
+            document.getElementById('progress-bar').style.width = '0%';
+            
+            document.getElementById('q-title').innerText = currentCategory.type === 'reverse' ? "Listen Carefully" : "Listen and Guess";
+            document.getElementById('play-challenge-btn').disabled = false;
+            
+            // Critical fix: load the audio source but don't play yet
+            audioEl.src = (currentCategory.type === 'reverse' ? currentCategory.questionAudio : currentCategory.audio) || '';
+            audioEl.load();
+
+            document.getElementById('question-view').classList.remove('hidden');
+        }
+
+        function playAudioSnippet() {
+            if (!currentCategory) return;
+            const audioSrc = currentCategory.type === 'reverse' ? currentCategory.questionAudio : currentCategory.audio;
+            if (isPlaying || (listensUsed >= 3 && !isSingingAlong) || !audioSrc) return;
+
+            if (!isSingingAlong) listensUsed++;
+            isPlaying = true;
+            isSingingAlong = false; 
+            document.getElementById('listen-counter').innerText = `Listens used: ${listensUsed} / 3`;
+            if (listensUsed >= 3) document.getElementById('play-challenge-btn').disabled = true;
+            document.getElementById('stop-question-btn').classList.remove('hidden');
+
+            audioEl.volume = 1;
+
+            // FIX: Ensure snippet always starts from 0:00 as requested
+            const handlePlay = () => {
+                audioEl.currentTime = 0;
+                audioEl.play().catch(e => { 
+                    errorEl.classList.remove('hidden'); 
+                    isPlaying = false; 
+                });
+                audioEl.removeEventListener('canplay', handlePlay);
+            };
+
+            if (audioEl.readyState >= 2) handlePlay();
+            else audioEl.addEventListener('canplay', handlePlay);
+
+            const startRealTime = Date.now();
+            if (currentTimer) clearInterval(currentTimer);
+            currentTimer = setInterval(() => {
+                if (currentCategory.type === '3sec') {
+                    const elapsed = (Date.now() - startRealTime) / 1000;
+                    document.getElementById('progress-bar').style.width = Math.min((elapsed / 3) * 100, 100) + '%';
+                    if (elapsed >= 3) stopMusicManually();
+                } else if (audioEl.duration) {
+                    document.getElementById('progress-bar').style.width = (audioEl.currentTime / audioEl.duration) * 100 + '%';
+                }
+            }, 50);
+        }
+
+        function stopMusicManually() {
+            if (currentTimer) clearInterval(currentTimer);
+            audioEl.pause();
+            audioEl.volume = 1; 
+            isPlaying = false;
+            
+            document.getElementById('stop-sing-btn').classList.add('hidden');
+            document.getElementById('stop-question-btn').classList.add('hidden');
+            document.getElementById('progress-bar').style.width = '0%';
+            isSingingAlong = false; 
+        }
+
+        function showAnswerAndPlay() {
+            if (!currentCategory) return;
+            
+            const container = document.getElementById('award-buttons-container');
+            container.innerHTML = groupNames.map((name, i) => `
+                <button onclick="awardPoints(${i}, this)" class="w-full py-3 bg-slate-800 hover:bg-indigo-600 rounded-xl font-bold transition border border-white/5 text-xs text-left px-5 flex justify-between items-center group text-white">
+                    <span>${name}</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition text-white">+${currentCategory.points}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('answer-box').classList.remove('hidden');
+            document.getElementById('q-answer').innerText = currentCategory.answer;
+            document.getElementById('challenge-actions').classList.add('hidden');
+            completedIds.add(currentCategory.id);
+            
+            playSingAlong();
+        }
+
+        function playSingAlong() {
+            if (!currentCategory) return;
+            const singAlongSrc = currentCategory.type === 'reverse' ? currentCategory.answerAudio : currentCategory.audio;
+            if (!singAlongSrc) return;
+
+            isPlaying = true;
+            isSingingAlong = true;
+            document.getElementById('stop-sing-btn').classList.remove('hidden');
+            
+            audioEl.src = singAlongSrc;
+            audioEl.volume = 1;
+            
+            const handleLoad = () => {
+                audioEl.currentTime = currentCategory.startTime || 0;
+                audioEl.play().catch(err => {
+                    console.error("Playback failed", err);
+                    isPlaying = false;
+                });
+                audioEl.removeEventListener('loadedmetadata', handleLoad);
+            };
+
+            if (audioEl.readyState >= 1) handleLoad();
+            else audioEl.addEventListener('loadedmetadata', handleLoad);
+
+            if (currentTimer) clearInterval(currentTimer);
+            currentTimer = setInterval(() => {
+                if (audioEl.duration) {
+                    const progress = (audioEl.currentTime / audioEl.duration) * 100;
+                    document.getElementById('progress-bar').style.width = progress + '%';
+                }
+            }, 100);
+        }
+
+        function showFinalRanking() {
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('main-title').classList.add('hidden');
+            document.getElementById('ranking-view').classList.remove('hidden');
+            
+            const groupData = scores.map((s, i) => ({ name: groupNames[i], score: s }));
+            groupData.sort((a, b) => b.score - a.score);
+            
+            // Hierarchy sizes
+            const paddings = ['p-10', 'p-8', 'p-6', 'p-5', 'p-4'];
+            const rankSizes = ['text-6xl', 'text-5xl', 'text-4xl', 'text-3xl', 'text-2xl'];
+            const nameSizes = ['text-4xl', 'text-3xl', 'text-2xl', 'text-xl', 'text-lg'];
+            const scoreSizes = ['text-5xl', 'text-4xl', 'text-3xl', 'text-2xl', 'text-xl'];
+
+            document.getElementById('ranking-list').innerHTML = groupData.map((g, i) => `
+                <div class="ranking-item flex justify-between items-center ${paddings[i]} rounded-2xl border border-white/5 ${i === 0 ? 'border-yellow-500/30 bg-yellow-500/5 shadow-2xl shadow-yellow-500/10' : ''}">
+                    <div class="flex items-center gap-6">
+                        <span class="${rankSizes[i]} font-bold ${i === 0 ? 'text-yellow-400' : 'text-slate-500'}">#${i + 1}</span>
+                        <span class="${nameSizes[i]} font-bold text-white truncate max-w-[200px] md:max-w-none">${g.name}</span>
+                    </div>
+                    <div class="${scoreSizes[i]} title-font font-bold text-indigo-400 whitespace-nowrap">${g.score} <span class="text-[10px] uppercase font-sans tracking-widest text-slate-500 ml-2">Pts</span></div>
+                </div>
+            `).join('');
+            
+            playCeremonyMusic();
+        }
+
+        function playCeremonyMusic() {
+            if (isPlaying) {
+                audioEl.pause();
+                if (currentTimer) clearInterval(currentTimer);
+            }
+            
+            isPlaying = true;
+            audioEl.src = rewardCeremonyMusic;
+            audioEl.volume = 1;
+            audioEl.currentTime = 0;
+            audioEl.play().catch(e => {
+                console.log("Ceremony auto-play blocked.", e);
+                isPlaying = false;
+            });
+        }
+
+        function backToDashboard() {
+            stopMusicManually();
+            document.getElementById('question-view').classList.add('hidden');
+            document.getElementById('ranking-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.remove('hidden');
+            document.getElementById('main-title').classList.remove('hidden');
+            initGrid();
+        }
+
+        window.onload = startGame;
+    </script>
+</body>
+</html>
